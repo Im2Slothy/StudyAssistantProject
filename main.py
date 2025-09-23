@@ -32,12 +32,40 @@ Future ideas:
 
 
 
-
-
-
-
 import time
+import cv2   # camera
+import serial  # arduino
 from config import study_methods
+
+# ---------------- ARDUINO SETUP ----------------
+# Adjust the port 
+try:
+    arduino = serial.Serial(port="COM3", baudrate=9600, timeout=1)
+    print("Arduino connected.")
+except Exception as e:
+    print("Arduino not connected:", e)
+    arduino = None
+
+
+# ---------------- CAMERA FUNCTIONS ----------------
+def start_camera(desired_fps=30):
+    """Start camera capture3"""
+    cap = cv2.VideoCapture(0)  # default camera
+
+    if not cap.isOpened():
+        print("Error: Could not open camera.")
+        return None
+
+    cap.set(cv2.CAP_PROP_FPS, desired_fps)
+    actual_fps = cap.get(cv2.CAP_PROP_FPS)
+    print(f"Camera started. Requested FPS: {desired_fps}, Actual FPS: {actual_fps}")
+    return cap
+
+def stop_camera(cap):
+    if cap:
+        cap.release()
+        cv2.destroyAllWindows()
+        print("Camera stopped.")
 
 
 # ---------------- TIMER FUNCTIONS ----------------
@@ -45,23 +73,31 @@ def run_timer(work_time, break_time, cycles):
     #print("run timer started")
     print("work_time:", work_time, "break_time:", break_time, "cycles:", cycles)
 
+    cap = start_camera()
+
     for cycle in range(1, cycles + 1):
         print("\nCycle:", cycle)
 
         # Work phase
         print("\nStarting study phase")
-        countdown(work_time)
+        countdown(work_time, cap)
 
         # Break phase
         print("\nStarting break phase")
-        countdown(break_time)
+        countdown(break_time, cap)
 
         print("Cycle complete:", cycle)
 
     print("All cycles complete")
 
+    # send signal to Arduino when finished
+    if arduino:
+        arduino.write(b"light\n")
 
-def countdown(seconds):
+    stop_camera(cap)
+
+
+def countdown(seconds, cap=None):
     #print("countdown started with seconds ", seconds)
 
     while seconds > 0:
@@ -69,6 +105,14 @@ def countdown(seconds):
         print(f"{mins:02d}:{secs:02d} remaining", end="\r")
         time.sleep(1)
         seconds -= 1
+
+        # update camera frame if available
+        if cap:
+            ret, frame = cap.read()
+            if ret:
+                cv2.imshow("Study Helper Camera", frame)
+                if cv2.waitKey(1) & 0xFF == ord("q"):  # press q to quit cam
+                    break
 
     print("countdown finished")
 
@@ -85,9 +129,6 @@ def get_positive_int(prompt):
             return value
         except ValueError:
             print("Invalid input. Please enter a whole number.")
-
-
-
 
 
 # ---------------- MAIN MENU ----------------
