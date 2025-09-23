@@ -100,21 +100,35 @@ def run_timer(work_time, break_time, cycles):
 def countdown(seconds, cap=None):
     #print("countdown started with seconds ", seconds)
 
-    while seconds > 0:
-        mins, secs = divmod(seconds, 60)
+    end_time = time.time() + seconds  # mark when countdown should end
+
+    while time.time() < end_time:
+        # calculate remaining time
+        remaining = int(end_time - time.time())
+        mins, secs = divmod(remaining, 60)
         print(f"{mins:02d}:{secs:02d} remaining", end="\r")
-        time.sleep(1)
-        seconds -= 1
 
         # update camera frame if available
         if cap:
             ret, frame = cap.read()
             if ret:
+                # overlay countdown timer on video feed
+                cv2.putText(frame, f"{mins:02d}:{secs:02d}",
+                            (30, 50),               # position
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            1, (0, 255, 0), 2, cv2.LINE_AA)
+
                 cv2.imshow("Study Helper Camera", frame)
-                if cv2.waitKey(1) & 0xFF == ord("q"):  # press q to quit cam
+
+                # allow quitting camera early
+                if cv2.waitKey(1) & 0xFF == ord("q"):
                     break
 
+        # stackoverflow says sleep to prevent the CPU from being overworked
+        time.sleep(0.03)
+
     print("countdown finished")
+
 
 
 # ---------------- INPUT VALIDATION ----------------
