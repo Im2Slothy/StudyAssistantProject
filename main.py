@@ -1,44 +1,18 @@
-'''
-✅❌⌛(Done, Not Done, In Progress)
-
-✅ Welcome the user
- 
-❌ find someway for the user to give the topic or photos/pdfs of what they're working with if they choose. 
-
-✅ Ask the user for a specific study method or a simple timer. 
-✅ Maybe a config for different study methods? ( This does this and that - Have them enter their choice via numbers or text ) - use.lower (DONE with IDs)
-
-❌ When we're ready to begin, ensure we have camera access - Document in comments or somewhere to help the user solve the errors.
-
-❌ When we're started, say X photos a second or every few seconds -- We'll compare what we see with the trained model --
-❌If user is caught using phone
-  Work with arduino to play buzzer -- Are we doing something with the time?
-else:
-  Continue and play a task or loop to take photos and check.
-
-  
-✅While this is happening we either play the timer on the screen or just print every minute in the console. 
-
-❌When we hit milestones (Specify in the config -- Tell the user they're doing)
-
-❌Integrate ChatGPT into the code for checks of assignment and stuff - run this last. 
-
-Future ideas:
-- maybe add microphone input for study method instead of typing/ID
-- tie Arduino + camera into same loop as timer ( We are going to use the device camera per prof.)
-- milestone notifications every X cycles ( Yay congrats, keep going!, etc etc)
-'''
-
-
-
-
 import time
 import cv2   # camera
 import serial  # arduino
 from config import study_methods
+import os
+import threading
+import queue
+import pygame  # this is playing the audio 
+from openai import OpenAI
+from dotenv import load_dotenv
+load_dotenv()
+
 
 # ---------------- ARDUINO SETUP ----------------
-# Adjust the port 
+# Adjust the port, if you need help finding this go to device manager on Windows or use `ls /dev/tty.*` on Mac/Linux
 try:
     arduino = serial.Serial(port="COM3", baudrate=9600, timeout=1)
     print("Arduino connected.")
@@ -49,16 +23,14 @@ except Exception as e:
 
 # ---------------- CAMERA FUNCTIONS ----------------
 def start_camera(desired_fps=30):
-    """Start camera capture3"""
+    """Start camera capture"""
     cap = cv2.VideoCapture(0)  # default camera
 
     if not cap.isOpened():
-        print("Error: Could not open camera.")
+        print("Error: Could not open camera. If you're getting this error, try checking your camera permissions or if another application is using the camera.")
         return None
 
     cap.set(cv2.CAP_PROP_FPS, desired_fps)
-    actual_fps = cap.get(cv2.CAP_PROP_FPS)
-    print(f"Camera started. Requested FPS: {desired_fps}, Actual FPS: {actual_fps}")
     return cap
 
 def stop_camera(cap):
@@ -70,40 +42,48 @@ def stop_camera(cap):
 
 # ---------------- TIMER FUNCTIONS ----------------
 def run_timer(work_time, break_time, cycles):
-    #print("run timer started")
     print("work_time:", work_time, "break_time:", break_time, "cycles:", cycles)
 
     cap = start_camera()
 
-    for cycle in range(1, cycles + 1):
-        print("\nCycle:", cycle)
+    # start motivational worker thread
+    stop_nice = threading.Event()
+    motivation_interval = 300  # 5 minutes between motivational phrases
+    nice_thread = threading.Thread(target=nice_worker, args=(stop_nice, motivation_interval), daemon=True)
+    nice_thread.start()
 
-        # Work phase
-        print("\nStarting study phase")
-        countdown(work_time, cap)
+    try:
+        for cycle in range(1, cycles + 1): 
+            print("\nCycle:", cycle)
 
-        # Break phase
-        print("\nStarting break phase")
-        countdown(break_time, cap)
+            # Work phase
+            print("\nStarting study phase")
+            countdown(work_time, cap)
 
-        print("Cycle complete:", cycle)
+            # Break phase
+            print("\nStarting break phase")
+            countdown(break_time, cap)
 
-    print("All cycles complete")
+            print("Cycle complete:", cycle)
 
-    # send signal to Arduino when finished
-    if arduino:
-        arduino.write(b"light\n")
+        print("All cycles complete")
 
-    stop_camera(cap)
+        # send signal to Arduino when finished
+        if arduino:
+            arduino.write(b"light\n")
+
+    finally:
+        # stop motivational thread
+        stop_nice.set()
+        nice_thread.join(timeout=2) # wait 2 seconds for thread to stop
+        stop_camera(cap)
 
 
 def countdown(seconds, cap=None):
-    #print("countdown started with seconds ", seconds)
-
-    end_time = time.time() + seconds  # mark when countdown should end
+    # Timer countdown function
+    end_time = time.time() + seconds
 
     while time.time() < end_time:
-        # calculate remaining time
         remaining = int(end_time - time.time())
         mins, secs = divmod(remaining, 60)
         print(f"{mins:02d}:{secs:02d} remaining", end="\r")
@@ -129,8 +109,6 @@ def countdown(seconds, cap=None):
 
     print("countdown finished")
 
-
-
 # ---------------- INPUT VALIDATION ----------------
 def get_positive_int(prompt):
     """Keep asking until user gives a valid integer >= 1"""
@@ -138,11 +116,11 @@ def get_positive_int(prompt):
         try:
             value = int(input(prompt))
             if value < 1:
-                print("Value must be at least 1. Try again.")
+                print("Please enter a number greater than 0")
                 continue
             return value
-        except ValueError:
-            print("Invalid input. Please enter a whole number.")
+        except:
+            print("That's not a valid number, try again")
 
 
 # ---------------- MAIN MENU ----------------
@@ -159,7 +137,6 @@ def main():
     # Keep asking until valid input
     while not selected_method:
         choice = input("Enter method ID or name: ").strip().lower()
-        #print("i choose ", choice)
 
         for name, details in study_methods.items():
             if choice == str(details["id"]) or choice == name:
@@ -167,29 +144,138 @@ def main():
                 break
 
         if not selected_method:
-            print("Invalid choice. Try again.")
+            print("That's not a valid option, try again")
 
     config = study_methods[selected_method]
     print(config)
 
     # if they choose custom ask what they want
     if selected_method == "custom":
-        print("Custom  selected")
-
-        work_time = get_positive_int("Enter study time (minutes): ") * 60
-        break_time = get_positive_int("Enter break time (minutes): ") * 60
-        cycles = get_positive_int("Enter number of cycles: ")
-
-        print("Custom values ->", work_time, break_time, cycles)
+        work_time = get_positive_int("How many minutes to study? ") * 60
+        break_time = get_positive_int("How many minutes for breaks? ") * 60
+        cycles = get_positive_int("How many cycles? ")
     else:
+        # Use the preset values
         work_time = config["work_time"]
         break_time = config["break_time"]
         cycles = config["cycles"]
 
-    #print("Starting timer with:", work_time, break_time, cycles) 
     run_timer(work_time, break_time, cycles)
 
 
+# TTS setup using OpenAI
+tts_queue = queue.Queue()
+tts_stop_event = threading.Event()
+
+def tts_worker():
+    # This function runs in the background to handle TTS
+    client = OpenAI()
+    
+    while not tts_stop_event.is_set():
+        try:
+            phrase = tts_queue.get(timeout=0.5)
+            #print(f"TTS: {phrase}")
+            
+            try:
+                # Generate and play audio
+                response = client.audio.speech.create(model="tts-1", voice="alloy", input=phrase) # This model is cheap and sounds good so we should use it.
+                
+                # Write to temp file and play immediately
+                with open("temp_tts.mp3", "wb") as f:
+                    f.write(response.content)
+                
+                # Play audio using pygame - I've used idk how many more methods with the help of AI and this is the only one that works.
+                pygame.mixer.init()
+                pygame.mixer.music.load("temp_tts.mp3")
+                pygame.mixer.music.play()
+                
+                # Wait for playback to finish
+                while pygame.mixer.music.get_busy():
+                    time.sleep(0.1)
+                    
+                pygame.mixer.quit()
+                print("TTS done!")
+                
+            except Exception as e:
+                print(f"TTS Error: {e}")
+                
+        except queue.Empty:
+            continue
+
+def speak_text(text):
+    """Add text to TTS queue"""
+    tts_queue.put(text)
+
+# Start TTS worker once at program start
+tts_thread = threading.Thread(target=tts_worker, daemon=True)
+tts_thread.start()
+
+
+# ---------------- PHRASE WORKER ----------------
+def nice_worker(stop_event, interval_seconds=300):
+    """Fetch phrases every interval and queue them for TTS"""
+    client = OpenAI()
+
+    def get_nice_phrase_from_api():
+        try:
+            resp = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are a friendly, creative study coach. Each message should feel different. "
+                            "Avoid repeating words or phrasing. No Emojis. Keep it under 25 words."
+                        ),
+                    },
+                    {"role": "user", "content": "Give one short, unique, encouraging sentence for someone studying."}
+                ],
+                max_tokens=40, 
+                temperature=0.9,
+            )
+            return resp.choices[0].message.content.strip()
+        except Exception as e:
+            print(f"Error getting motivation: {e}")
+            return None
+
+    # send first phrase immediately
+    phrase = get_nice_phrase_from_api()
+    if phrase:
+        #print(f"Motivation: {phrase}")
+        speak_text(phrase)
+
+    # then loop every interval
+    last_time = time.time()
+    
+    # loop until stopped
+    while not stop_event.is_set():
+        current_time = time.time()
+        time_since_last = current_time - last_time
+        
+        # if enough time has passed, get a new phrase
+        if time_since_last >= interval_seconds:
+            phrase = get_nice_phrase_from_api()
+            if phrase:
+                print(f"Motivation: {phrase}")
+                speak_text(phrase)
+                last_time = current_time
+        
+        time.sleep(0.5)
+
+
+# ---------------- RUN MAIN ----------------
 if __name__ == "__main__":
     print("start")
-    main()
+    
+    try:
+        main()
+    finally:
+        # Cleanup on exit
+        tts_stop_event.set()
+        tts_thread.join(timeout=2)
+        
+        # Remove temp file if it exists
+        if os.path.exists("temp_tts.mp3"):
+            os.remove("temp_tts.mp3")
+        
+        print("Cleanup complete")
