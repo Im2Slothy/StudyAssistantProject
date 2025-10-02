@@ -5,7 +5,7 @@ This is a project about a Study Assistant that is designed to help users focus d
 
 1.  **Clone the repository:**
     ```bash
-    git clone [https://github.com/Im2Slothy/StudyAssistantProject.git](https://github.com/Im2Slothy/StudyAssistantProject)
+    git [clone https://github.com/Im2Slothy/StudyAssistantProject](https://github.com/Im2Slothy/StudyAssistantProject.git)
     cd StudyAssistantProject
     ```
 
