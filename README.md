@@ -4,10 +4,10 @@ This is a project about a Study Assistant that is designed to help users focus d
 ## Install onto your computer
 
 1.  **Clone the repository:**
-    ```bash
-    git [clone https://github.com/Im2Slothy/StudyAssistantProject](https://github.com/Im2Slothy/StudyAssistantProject.git)
-    cd StudyAssistantProject
-    ```
+git clone https://github.com/Im2Slothy/StudyAssistantProject.git
+cd StudyAssistantProject
+
+
 
 2.  **Set up the Environment:**
     Create a file named `.env` in the main project folder and add your OpenAI API key to it:
