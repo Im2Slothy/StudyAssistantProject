@@ -1,30 +1,37 @@
-# StudyAssistantProject
+## About the project
+This is a project about a Study Assistant that is designed to help users focus during study sessions using preset or custom study techniques. Mainly built in python you it features a timer, a camera to display the countdown and watch the user, and OpenAI's API to give motivational messages and turn said messages into spoken voice. To let the user know the study session is over or when a milestone has been hit it'll send a signal to an Arduino to flash an LED light letting the user know whats happening so they can have the computer in the background and just have the nice visual in front of them. While the code is running it'll be checking to see if the user is seen on their phone distracted while in the active study session and it'll alert the user to get back to work. 
 
-✅❌⌛(Done, Not Done, In Progress)
+## Install onto your computer
 
-✅ Welcome the user
- 
-❌ find someway for the user to give the topic or photos/pdfs of what they're working with if they choose. 
+1.  **Clone the repository:**
+    ```bash
+    git clone [https://github.com/Im2Slothy/StudyAssistantProject.git](https://github.com/Im2Slothy/StudyAssistantProject)
+    cd StudyAssistantProject
+    ```
 
-✅ Ask the user for a specific study method or a simple timer. 
-✅ Maybe a config for different study methods? ( This does this and that - Have them enter their choice via numbers or text ) - use.lower (DONE with IDs)
+2.  **Set up the Environment:**
+    Create a file named `.env` in the main project folder and add your OpenAI API key to it:
+    ```
+    OPENAI_API_KEY=your_api_key_here
+    ```
 
-✅ When we're ready to begin, ensure we have camera access - Document in comments or somewhere to help the user solve the errors.
+3.  **Install Dependencies:**
+    Install all the required Python libraries by running the following command in your terminal:
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-❌ When we're started, say X photos a second or every few seconds -- We'll compare what we see with the trained model --
-❌If user is caught using phone
-  Work with arduino to play buzzer -- Are we doing something with the time?
-else:
-  Continue and play a task or loop to take photos and check.
+4.  **Connect Hardware:**
+    Upload the `main.ino` sketch to your Arduino and connect it to your computer. You may need to update the COM port in the `main.py` file if it's not on `COM3`.
 
-  
-✅While this is happening we either play the timer on the screen or just print every minute in the console. 
+## Requirements 
 
-✅When we hit milestones (Specify in the config -- Tell the user they're doing)
+### Hardware
+* A computer with Python installed.
+* A webcam.
+* An Arduino board (e.g., Arduino Uno).
+* An LED with appropriate wires and resistors.
 
-✅Integrate ChatGPT into the code for checks of assignment and stuff - run this last. 
-
-Future ideas:
-- maybe add microphone input for study method instead of typing/ID
-- ✅ tie Arduino + camera into same loop as timer ( We are going to use the device camera per prof.)
-- ✅ milestone notifications every X cycles ( Yay congrats, keep going!, etc etc)
+### Accounts & Setup
+* **OpenAI API Key:** A valid API key from OpenAI is required and must be stored in the `.env` file. You can get a key from their [API Dashboard](https://platform.openai.com/api-keys)
+* **Arduino IDE (Recommended):** Needed to upload the `.ino` sketch to your Arduino board. You could run through VSCode or other methods but it made my life so much easier to just put the code in the Arduino IDE and then just upload it there. 
