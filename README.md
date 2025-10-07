@@ -1,5 +1,13 @@
 ## About the project
-This is a project about a Study Assistant that is designed to help users focus during study sessions using preset or custom study techniques. Mainly built in python you it features a timer, a camera to display the countdown and watch the user, and OpenAI's API to give motivational messages and turn said messages into spoken voice. To let the user know the study session is over or when a milestone has been hit it'll send a signal to an Arduino to flash an LED light letting the user know whats happening so they can have the computer in the background and just have the nice visual in front of them. While the code is running it'll be checking to see if the user is seen on their phone distracted while in the active study session and it'll alert the user to get back to work. 
+This is a project about a Study Assistant that is designed to help users focus during study sessions using preset or custom study techniques. Mainly built in python, it features a timer, a camera to display the countdown and watch the user, and OpenAI's API to give motivational messages and turn said messages into spoken voice. To let the user know the study session is over or when a milestone has been hit, it'll send a signal to an Arduino to flash an LED light letting the user know whats happening so they can have the computer in the background. It can also feature a nice visual on the screen while the timer is going as to not distract the user. While the code is running it checks to see if the user is seen on their phone or distracted while in the active study session and it'll alert the user to get back to work. 
+
+## Phases of the project
+
+1. **First working model**
+   The first working model includes a camera feature trained with google trainable model to register whether the user it looking at something distracting. It also includes a buzzer to redirect the user when distracted. We utilized python to build the code and environment for this to work alongside an arduino to carry out the messages be the physical model. The main part of this model was training the model and making sure it can run with the arduino setup that we currently have built. The python was constructed to be able to add more and achieve the second model's goals which are more specific to the final model we had in mind. 
+
+2. **Second model** (EDIT BEFORE FINAL)
+   We added a timer module to the model for the user to see how much time is left in their study session and to be able to set it to a correct amount of time for the allotted session. It also is able to distinguish among multiple people, people passing by, and other people in the environment, to focus on the main user and not be triggered by others. It included motivating messages by utilizing OpenAI's API and turning those messages into spoken word using a speaker module.
 
 ## Install onto your computer
 
