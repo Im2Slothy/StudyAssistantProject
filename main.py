@@ -6,6 +6,9 @@ import os
 import threading
 import queue
 import pygame  # this is playing the audio 
+from vosk import Model as VoskModel, KaldiRecognizer
+from tensorflow.keras.models import load_model
+from tensorflow.keras.layers import DepthwiseConv2D
 from openai import OpenAI
 from dotenv import load_dotenv
 load_dotenv()
@@ -22,6 +25,61 @@ except Exception as e:
 
 
 # ---------------- CAMERA FUNCTIONS ----------------
+class CustomDepthwiseConv2D(DepthwiseConv2D):  # This function detects what the camera is looking at
+    def __init__(self, *args, **kwargs):
+        kwargs.pop("groups", None)
+        super().__init__(*args, **kwargs)
+
+
+# Load phone detection model once at startup
+try:
+    import numpy as np
+    np.set_printoptions(suppress=True)
+    # Try loading the model without custom objects first
+    phone_model = load_model("Image_Models/keras_model.h5", compile=False)
+    class_names = open("Image_Models/labels.txt", "r").readlines()
+    print("Phone detection model loaded successfully!")
+    MODEL_LOADED = True
+
+except Exception as e:
+    print(f"Could not load phone detection model: {e}")
+    print("Continuing without phone detection...")
+    phone_model = None
+    class_names = None
+    MODEL_LOADED = False
+
+
+def detect_phone_in_frame(frame):
+    """Detect if phone is in the camera frame"""
+    if not MODEL_LOADED or phone_model is None:
+        return False
+
+    try:
+        # Resize frame to model input size
+        resized = cv2.resize(frame, (224, 224), interpolation=cv2.INTER_AREA)
+
+        # Prepare for model prediction
+        image_array = np.asarray(resized, dtype=np.float32).reshape(1, 224, 224, 3)
+        normalized_image = (image_array / 127.5) - 1
+
+        # Make prediction
+        prediction = phone_model.predict(normalized_image, verbose=0)
+        index = np.argmax(prediction)
+        class_name = class_names[index].strip()
+        confidence = prediction[0][index]
+
+        # Check if phone is detected with high confidence
+        if "phone" in class_name.lower() and confidence > 0.7:
+            print(f"Phone detected! Confidence: {confidence:.2f}")
+            return True
+
+        return False
+
+    except Exception as e:
+        print(f"Error in phone detection: {e}")
+        return False
+
+
 def start_camera(desired_fps=30):
     """Start camera capture"""
     cap = cv2.VideoCapture(0)  # default camera
@@ -32,6 +90,7 @@ def start_camera(desired_fps=30):
 
     cap.set(cv2.CAP_PROP_FPS, desired_fps)
     return cap
+
 
 def stop_camera(cap):
     if cap:
@@ -45,6 +104,8 @@ def run_timer(work_time, break_time, cycles):
     print("work_time:", work_time, "break_time:", break_time, "cycles:", cycles)
 
     cap = start_camera()
+    if cap is None:
+        print("Camera not available. Running without camera detection.")
 
     # start motivational worker thread
     stop_nice = threading.Event()
@@ -53,7 +114,7 @@ def run_timer(work_time, break_time, cycles):
     nice_thread.start()
 
     try:
-        for cycle in range(1, cycles + 1): 
+        for cycle in range(1, cycles + 1):
             print("\nCycle:", cycle)
 
             # Work phase
@@ -75,7 +136,7 @@ def run_timer(work_time, break_time, cycles):
     finally:
         # stop motivational thread
         stop_nice.set()
-        nice_thread.join(timeout=2) # wait 2 seconds for thread to stop
+        nice_thread.join(timeout=2)  # wait 2 seconds for thread to stop
         stop_camera(cap)
 
 
@@ -92,11 +153,24 @@ def countdown(seconds, cap=None):
         if cap:
             ret, frame = cap.read()
             if ret:
+                # Check for phone if model is loaded
+                phone_detected = False
+                if MODEL_LOADED and phone_model is not None:
+                    phone_detected = detect_phone_in_frame(frame)
+
+                    if phone_detected:
+                        # Flash red warning if phone detected
+                        cv2.putText(frame, "PHONE DETECTED!", (30, 100),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 3)
+                        # Send warning to Arduino
+                        if arduino:
+                            arduino.write(b"phone_warning\n")
+
                 # overlay countdown timer on video feed
+                timer_color = (0, 0, 255) if phone_detected else (0, 255, 0)  # Red if phone, green otherwise
                 cv2.putText(frame, f"{mins:02d}:{secs:02d}",
-                            (30, 50),               # position
-                            cv2.FONT_HERSHEY_SIMPLEX,
-                            1, (0, 255, 0), 2, cv2.LINE_AA)
+                            (30, 50), cv2.FONT_HERSHEY_SIMPLEX,
+                            1, timer_color, 2, cv2.LINE_AA)
 
                 cv2.imshow("Study Helper Camera", frame)
 
@@ -108,6 +182,7 @@ def countdown(seconds, cap=None):
         time.sleep(0.03)
 
     print("countdown finished")
+
 
 # ---------------- INPUT VALIDATION ----------------
 def get_positive_int(prompt):
@@ -163,48 +238,51 @@ def main():
     run_timer(work_time, break_time, cycles)
 
 
-# TTS setup using OpenAI
+# ---------------- TTS SETUP ----------------
 tts_queue = queue.Queue()
 tts_stop_event = threading.Event()
+
 
 def tts_worker():
     # This function runs in the background to handle TTS
     client = OpenAI()
-    
+
     while not tts_stop_event.is_set():
         try:
             phrase = tts_queue.get(timeout=0.5)
-            #print(f"TTS: {phrase}")
-            
+
             try:
                 # Generate and play audio
                 response = client.audio.speech.create(model="tts-1", voice="alloy", input=phrase) # This model is cheap and sounds good so we should use it.
-                
+
+
                 # Write to temp file and play immediately
                 with open("temp_tts.mp3", "wb") as f:
                     f.write(response.content)
-                
+
                 # Play audio using pygame - I've used idk how many more methods with the help of AI and this is the only one that works.
                 pygame.mixer.init()
                 pygame.mixer.music.load("temp_tts.mp3")
                 pygame.mixer.music.play()
-                
+
                 # Wait for playback to finish
                 while pygame.mixer.music.get_busy():
                     time.sleep(0.1)
-                    
+
                 pygame.mixer.quit()
                 print("TTS done!")
-                
+
             except Exception as e:
                 print(f"TTS Error: {e}")
-                
+
         except queue.Empty:
             continue
+
 
 def speak_text(text):
     """Add text to TTS queue"""
     tts_queue.put(text)
+
 
 # Start TTS worker once at program start
 tts_thread = threading.Thread(target=tts_worker, daemon=True)
@@ -230,7 +308,7 @@ def nice_worker(stop_event, interval_seconds=300):
                     },
                     {"role": "user", "content": "Give one short, unique, encouraging sentence for someone studying."}
                 ],
-                max_tokens=40, 
+                max_tokens=40,
                 temperature=0.9,
             )
             return resp.choices[0].message.content.strip()
@@ -241,17 +319,16 @@ def nice_worker(stop_event, interval_seconds=300):
     # send first phrase immediately
     phrase = get_nice_phrase_from_api()
     if phrase:
-        #print(f"Motivation: {phrase}")
         speak_text(phrase)
 
     # then loop every interval
     last_time = time.time()
-    
+
     # loop until stopped
     while not stop_event.is_set():
         current_time = time.time()
         time_since_last = current_time - last_time
-        
+
         # if enough time has passed, get a new phrase
         if time_since_last >= interval_seconds:
             phrase = get_nice_phrase_from_api()
@@ -259,23 +336,23 @@ def nice_worker(stop_event, interval_seconds=300):
                 print(f"Motivation: {phrase}")
                 speak_text(phrase)
                 last_time = current_time
-        
+
         time.sleep(0.5)
 
 
 # ---------------- RUN MAIN ----------------
 if __name__ == "__main__":
     print("start")
-    
+
     try:
         main()
     finally:
         # Cleanup on exit
         tts_stop_event.set()
         tts_thread.join(timeout=2)
-        
+
         # Remove temp file if it exists
         if os.path.exists("temp_tts.mp3"):
             os.remove("temp_tts.mp3")
-        
+
         print("Cleanup complete")
