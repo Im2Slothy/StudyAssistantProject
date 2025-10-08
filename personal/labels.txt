@@ -1,0 +1,2 @@
+0 Focused
+1 Not Focused

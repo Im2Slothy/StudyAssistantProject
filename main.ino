@@ -26,7 +26,7 @@ void loop() {
         }
 
         // ALERT COMMAND: play buzzer tones
-        else if (command == "alert" || command == "phone_warning") {
+        else if (command == "alert") { 
             tone(buzzerPin, 440); // A4
             delay(500);
             tone(buzzerPin, 494); // B4
