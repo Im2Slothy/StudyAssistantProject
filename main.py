@@ -132,8 +132,8 @@ def countdown(seconds, cap=None):
 
     # Timer countdown function
     end_time = time.time() + seconds
-    last_alert_time = 0  # for cooldown between Arduino alerts
-    alert_cooldown = 10  # seconds
+    last_alert_time = 1  # for cooldown between Arduino alerts
+    alert_cooldown = 5  # seconds
 
     while time.time() < end_time:
         remaining = int(end_time - time.time())
@@ -160,10 +160,10 @@ def countdown(seconds, cap=None):
                         cv2.putText(frame, f"{class_name} {confidence_score*100:.1f}%", (30, 90),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2, cv2.LINE_AA)
 
-                        # Arduino trigger logic
-                        if confidence_score >= 0.9:
+                        # Arduino trigger logic - only alert if looking away (class 1 which in the index is the looking away) with high confidence
+                        if index == 1 and confidence_score >= 0.8: # only alert when "looking away" (distracted)
                             if time.time() - last_alert_time >= alert_cooldown: # cooldown check so we don't get spammed with alerts
-                                print(f"High confidence detected ({confidence_score:.2f}) -> sending alert")
+                                print(f"Distracted detected ({confidence_score:.2f}) -> sending alert")
                                 if arduino:
                                     arduino.write(b"alert\n")
                                 last_alert_time = time.time()
