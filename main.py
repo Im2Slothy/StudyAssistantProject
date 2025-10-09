@@ -14,6 +14,13 @@ load_dotenv()
 
 
 # ---------------- ARDUINO SETUP ----------------
+
+"""
+This section tries to connect to the Arduino board through a serial port.
+It’s used later to send small signals (like "alert" or "light") to trigger LEDs or buzzers.
+If the Arduino isn’t connected, the program still runs without it.
+"""
+
 # Adjust the port, if you need help finding this go to device manager on Windows or use `ls /dev/tty.*` on Mac/Linux
 try:
     arduino = serial.Serial(port="COM3", baudrate=9600, timeout=1)
@@ -24,6 +31,13 @@ except Exception as e:
 
 
 # ---------------- MODEL SETUP ----------------
+
+"""
+Loads the pre-trained TensorFlow (Keras) image model that detects user states.
+`keras_model.h5` and `labels.txt` are used for predictions — for example, recognizing
+if the user is focused or distracted. The system uses this data to trigger Arduino alerts.
+"""
+
 # load the models
 try:
     model = load_model("personal/keras_model.h5", compile=False)
@@ -36,8 +50,14 @@ except Exception as e:
 
 
 # ---------------- CAMERA FUNCTIONS ----------------
+
+"""
+These functions handle starting and stopping the webcam feed.
+The live camera is used during study and break sessions to continuously monitor the user.
+"""
+
 def start_camera(desired_fps=30):
-    """Start camera capture"""
+    # Start camera capture
     cap = cv2.VideoCapture(0)  # default camera
 
     if not cap.isOpened():
@@ -48,6 +68,7 @@ def start_camera(desired_fps=30):
     return cap
 
 def stop_camera(cap):
+    # close the webcam and destroy any OpenCV windows.
     if cap:
         cap.release()
         cv2.destroyAllWindows()
@@ -55,6 +76,13 @@ def stop_camera(cap):
 
 
 # ---------------- TIMER FUNCTIONS ----------------
+
+"""
+This section runs the main study/break timer cycles.
+It controls the flow of each session, updates the camera display, and
+starts the motivational phrase thread.
+"""
+
 def run_timer(work_time, break_time, cycles):
     print("work_time:", work_time, "break_time:", break_time, "cycles:", cycles)
 
@@ -94,6 +122,14 @@ def run_timer(work_time, break_time, cycles):
 
 
 def countdown(seconds, cap=None):
+
+    """
+    Handles the actual countdown timer.
+    During the countdown, it continuously reads frames from the camera,
+    makes predictions using the model, and can send alerts to Arduino
+    if the user loses focus (based on high-confidence detections).
+    """
+
     # Timer countdown function
     end_time = time.time() + seconds
     last_alert_time = 0  # for cooldown between Arduino alerts
@@ -153,6 +189,11 @@ def countdown(seconds, cap=None):
     print("countdown finished")
 
 # ---------------- INPUT VALIDATION ----------------
+
+"""
+Simple helper to ensure users enter valid positive numbers for custom timer settings.
+"""
+
 def get_positive_int(prompt):
     """Keep asking until user gives a valid integer >= 1"""
     while True:
@@ -167,6 +208,12 @@ def get_positive_int(prompt):
 
 
 # ---------------- MAIN MENU ----------------
+
+"""
+Displays all study methods from config.py (like Pomodoro, custom, etc.)
+and starts the timer according to the user's choice.
+"""
+
 def main():
     print("Welcome to our study helper")
     print("Choose a study method below:")
@@ -207,6 +254,15 @@ def main():
 
 
 # ---------------- TTS SETUP ----------------
+
+"""
+This part runs a background thread that reads text phrases out loud.
+It uses OpenAI’s TTS model to generate a natural-sounding voice and
+pygame to play the sound. It’s used by the motivational phrase system.
+
+NOTE: Later, this may be replaced with a local TTS solution to avoid API costs.
+"""
+
 tts_queue = queue.Queue()
 tts_stop_event = threading.Event()
 
@@ -255,6 +311,12 @@ tts_thread.start()
 
 
 # ---------------- PHRASE WORKER ----------------
+
+"""
+This runs in the background and fetches motivational phrases every few minutes
+using OpenAI’s GPT model. Each phrase is spoken using the TTS system.
+"""
+
 def nice_worker(stop_event, interval_seconds=300):
     """Fetch phrases every interval and queue them for TTS"""
     client = OpenAI()
@@ -307,6 +369,11 @@ def nice_worker(stop_event, interval_seconds=300):
 
 
 # ---------------- RUN MAIN ----------------
+
+"""
+Runs the entire system. Handles cleanup (threads, temp files) when finished.
+"""
+
 if __name__ == "__main__":
     print("start")
     try:
