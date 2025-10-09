@@ -40,6 +40,28 @@ cd StudyAssistantProject
 * An Arduino board (e.g., Arduino Uno).
 * An LED with appropriate wires and resistors.
 
+## Model Setup (Teachable Machine)
+
+This project uses an image classification model from [Google Teachable Machine](https://teachablemachine.withgoogle.com/).
+
+1. Go to Teachable Machine -> “Image Project”  
+2. Train a model (for example: *Focused* vs *Distracted*)  
+3. Click **Export Model → TensorFlow → Keras (.h5)**  
+4. Download both files:
+   - `keras_model.h5`
+   - `labels.txt`
+5. Create a folder named `personal` in the project and place both files inside:
+   ```
+   StudyAssistantProject/
+   ├─ personal/
+   │  ├─ keras_model.h5
+   │  ├─ labels.txt
+   └─ main.py
+   ```
+
+Make sure the filenames and folder name match exactly, since the code loads them from `personal/`. Or just use the files provided with the download off the bat. 
+
+
 ### Accounts & Setup
 * **OpenAI API Key:** A valid API key from OpenAI is required and must be stored in the `.env` file. You can get a key from their [API Dashboard](https://platform.openai.com/api-keys)
 * **Arduino IDE (Recommended):** Needed to upload the `.ino` sketch to your Arduino board. You could run through VSCode or other methods but it made my life so much easier to just put the code in the Arduino IDE and then just upload it there. 
