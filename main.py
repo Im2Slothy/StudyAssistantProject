@@ -40,8 +40,8 @@ if the user is focused or distracted. The system uses this data to trigger Ardui
 
 # load the models
 try:
-    model = load_model("personal/keras_model.h5", compile=False)
-    class_names = open("personal/labels.txt", "r").readlines()
+    model = load_model("mikeModels/keras_model.h5", compile=False)
+    class_names = open("mikeModels/labels.txt", "r").readlines()
     print("Model loaded successfully.")
 except Exception as e:
     print("Model not loaded:", e)
@@ -91,11 +91,11 @@ def run_timer(work_time, break_time, cycles):
     # start motivational worker thread
     stop_nice = threading.Event()
     motivation_interval = 300  # 5 minutes between motivational phrases
-    nice_thread = threading.Thread(target=nice_worker, args=(stop_nice, motivation_interval), daemon=True)
-    nice_thread.start()
+    nice_thread = threading.Thread(target=nice_worker, args=(stop_nice, motivation_interval), daemon=True) # target is the function to run, args is a tuple of arguments to pass to the function, and daemon is True so it will exit when the main program exits
+    nice_thread.start() # start the thread
 
     try:
-        for cycle in range(1, cycles + 1):
+        for cycle in range(1, cycles + 1): # loop through the number of cycles
             print("\nCycle:", cycle)
 
             # Work phase
@@ -162,7 +162,7 @@ def countdown(seconds, cap=None):
 
                         # Arduino trigger logic
                         if confidence_score >= 0.9:
-                            if time.time() - last_alert_time >= alert_cooldown:
+                            if time.time() - last_alert_time >= alert_cooldown: # cooldown check so we don't get spammed with alerts
                                 print(f"High confidence detected ({confidence_score:.2f}) -> sending alert")
                                 if arduino:
                                     arduino.write(b"alert\n")

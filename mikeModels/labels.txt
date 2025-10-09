@@ -1,0 +1,2 @@
+0 looking at camera
+1 looking away
