@@ -10,7 +10,16 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from tensorflow.keras.models import load_model
 import numpy as np
+import random
 load_dotenv()
+
+# ---------------- CONFIG VARIABLES ----------------
+"""
+Change things here to adjust how the study helper works.
+"""
+preset_dir = "GPTPresetMP3"  # folder containing GPT-generated MP3s
+alert_delay_after_buzzer = 1.5  # seconds to wait after buzzer before playing mp3
+alert_cooldown = 5  # cooldown in seconds between alerts
 
 
 # ---------------- ARDUINO SETUP ----------------
@@ -133,7 +142,6 @@ def countdown(seconds, cap=None):
     # Timer countdown function
     end_time = time.time() + seconds
     last_alert_time = 1  # for cooldown between Arduino alerts
-    alert_cooldown = 5  # seconds
 
     while time.time() < end_time:
         remaining = int(end_time - time.time())
@@ -167,7 +175,24 @@ def countdown(seconds, cap=None):
                                 if arduino:
                                     arduino.write(b"alert\n")
                                 last_alert_time = time.time()
-
+                                # Wait for buzzer to finish (~1.5s delay) before playing voice
+                                time.sleep(alert_delay_after_buzzer)
+                                try:
+                                    files = [f for f in os.listdir(preset_dir) if f.endswith(".mp3")]
+                                    if files:
+                                        chosen = os.path.join(preset_dir, random.choice(files))
+                                        try:
+                                            pygame.mixer.quit()  # ensure it's not already active
+                                        except:
+                                            pass
+                                        pygame.mixer.init()
+                                        pygame.mixer.music.load(chosen)
+                                        pygame.mixer.music.play()
+                                        while pygame.mixer.music.get_busy():
+                                            time.sleep(0.1)
+                                        pygame.mixer.quit()
+                                except Exception as e:
+                                    print(f"Error playing GPT preset: {e}")
                     except Exception as e:
                         print("Prediction error:", e)
 
