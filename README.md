@@ -6,8 +6,10 @@ This is a project about a Study Assistant that is designed to help users focus d
 1. **First working model**
    The first working model includes a camera feature trained with google trainable model to register whether the user it looking at something distracting. It also includes a buzzer to redirect the user when distracted. We utilized python to build the code and environment for this to work alongside an arduino to carry out the messages be the physical model. The main part of this model was training the model and making sure it can run with the arduino setup that we currently have built. The python was constructed to be able to add more and achieve the second model's goals which are more specific to the final model we had in mind. 
 
-2. **Second model** (EDIT BEFORE FINAL)
-   We added a timer module to the model for the user to see how much time is left in their study session and to be able to set it to a correct amount of time for the allotted session. It also is able to distinguish among multiple people, people passing by, and other people in the environment, to focus on the main user and not be triggered by others. It included motivating messages by utilizing OpenAI's API and turning those messages into spoken word using a speaker module.
+2. **Second model** 
+    This model, we tried to figure out the text to speech section of the model. But we had some trouble getting it to communicate with the model, so we got the buzzer working pretty accurately. We tried multiple things to try and get the text to speech to work but there were a lot of delays and flaws within what it was recognizing and when it would play the sound. Our main goal for the next demo is to get the text to speech working the way we want it to and maybe dedicating some time to trying to implement the timer, but it depends on how much time and trouble the text to speech gives us.
+
+3. **Third model**
 
 ## Install onto your computer
 
