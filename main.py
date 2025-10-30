@@ -20,6 +20,7 @@ Change things here to adjust how the study helper works.
 preset_dir = "GPTPresetMP3"  # folder containing GPT-generated MP3s
 alert_delay_after_buzzer = 1.5  # seconds to wait after buzzer before playing mp3
 alert_cooldown = 5  # cooldown in seconds between alerts
+start_delay = 15 # seconds to wait before starting the timer (to give user time to get ready)
 
 
 # ---------------- ARDUINO SETUP ----------------
@@ -169,8 +170,12 @@ def countdown(seconds, cap=None):
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2, cv2.LINE_AA)
 
                         # Arduino trigger logic - only alert if looking away (class 1 which in the index is the looking away) with high confidence
-                        if index == 1 and confidence_score >= 0.8: # only alert when "looking away" (distracted)
-                            if time.time() - last_alert_time >= alert_cooldown: # cooldown check so we don't get spammed with alerts
+                        if index == 1 and confidence_score >= 0.8:  # only alert when "looking away" (distracted)
+                            # skip alerts until we're past the startup delay
+                            if time.time() - (end_time - seconds) < start_delay:
+                                continue
+                            # cooldown check so we don't get spammed with alerts
+                            if time.time() - last_alert_time >= alert_cooldown:
                                 print(f"Distracted detected ({confidence_score:.2f}) -> sending alert")
                                 if arduino:
                                     arduino.write(b"alert\n")
