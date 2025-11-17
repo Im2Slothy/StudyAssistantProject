@@ -11,7 +11,10 @@ from dotenv import load_dotenv
 from tensorflow.keras.models import load_model
 import numpy as np
 import random
+from PyPDF2 import PdfReader
 load_dotenv()
+
+client = OpenAI()
 
 # ---------------- CONFIG VARIABLES ----------------
 """
@@ -218,6 +221,66 @@ def countdown(seconds, cap=None):
 
     print("countdown finished")
 
+
+# --- PDF FUNCTIONS ---
+
+def extract_text_from_pdf(file_path):
+    """Reads a PDF file and returns all its text as a string."""
+    print(f"Extracting text from {file_path}...")
+    try:
+        # use PyPDF2 to read the PDF
+        reader = PdfReader(file_path)
+        text = ""
+        for page in reader.pages:
+            # Add a space between pages to avoid merged words
+            text += (page.extract_text() or "") + "\n"
+        print(f"Extracted {len(text)} characters from PDF.")
+        return text
+    except Exception as e:
+        print(f"Error reading PDF: {e}")
+        return None
+
+def generate_study_questions(pdf_text):
+    """Sends PDF text to GPT to generate Q&A."""
+    if not pdf_text:
+        print("No text was extracted, skipping Q&A.")
+        return
+
+    print("\nConnecting to GPT to generate study questions... This may take a moment.")
+
+    # make the text shorter if too long
+    # 15,000 chars is within the token limit for gpt-4o-mini
+    max_chars = 15000
+    if len(pdf_text) > max_chars:
+        print(f"Note: PDF text is very long. Using the first {max_chars} characters for analysis.")
+        pdf_text = pdf_text[:max_chars]
+
+    # this works well enough for the prompt I'm not touching this anymore and wasting tokens
+    system_prompt = (
+        "You are a helpful study assistant. Based on the following text from a user's document, "
+        "generate 5-7 in-depth questions and their answers to help them review. "
+        "Format the output clearly with 'Q:' and 'A:' for each item."
+    )
+    # give the study material
+    user_prompt = f"Here is the study material:\n\n{pdf_text}"
+
+    try:
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.7,
+        )
+        questions = resp.choices[0].message.content
+
+        print("\n--- YOUR CUSTOM STUDY QUESTIONS ---")
+        print(questions)
+        print("----------------------------------\n")
+    except Exception as e:
+        print(f"Error generating study questions: {e}")
+
 # ---------------- INPUT VALIDATION ----------------
 
 """
@@ -246,15 +309,30 @@ and starts the timer according to the user's choice.
 
 def main():
     print("Welcome to our study helper")
-    print("Choose a study method below:")
+    
+    # --- ASK FOR PDF ---
+    pdf_path = None
+    if input("Do you want to upload a PDF for a Q&A session after? (y/n): ").strip().lower() == 'y':
+        # get the pdf path from the user lowk the best way is to have them drag and drop it into the console ¯\_(ツ)_/¯
+        path_input = input("Please drag and drop your PDF file into the console, then press Enter: ").strip().strip("'\"")
+        
+        # validate the path
+        if os.path.exists(path_input) and path_input.lower().endswith('.pdf'):
+            pdf_path = path_input
+            print(f"PDF loaded: {os.path.basename(pdf_path)}")
+        else:
+            print("Invalid file path or not a PDF. Continuing without Q&A.")
 
-    # Show available methods with IDs
+    # continue to study method selection
+    print("\nChoose a study method below:")
+
+    # show available methods with IDs
     for name, details in study_methods.items():
         print(details["id"], "-", name, ":", details["description"])
 
     selected_method = None
 
-    # Keep asking until valid input
+    # keep asking until valid input
     while not selected_method:
         choice = input("Enter method ID or name: ").strip().lower()
 
@@ -282,6 +360,14 @@ def main():
 
     run_timer(work_time, break_time, cycles)
 
+    # --- RUN Q&A AT THE END ---
+    if pdf_path:
+        print("\nStudy session complete. Now generating review questions from your PDF...")
+        pdf_text = extract_text_from_pdf(pdf_path)
+        generate_study_questions(pdf_text)
+    else:
+        print("\nAll study cycles complete!")
+
 
 # ---------------- TTS SETUP ----------------
 
@@ -297,9 +383,7 @@ tts_queue = queue.Queue()
 tts_stop_event = threading.Event()
 
 def tts_worker():
-    # This function runs in the background to handle TTS
-    client = OpenAI()
-    
+    """Background thread that processes TTS queue"""    
     while not tts_stop_event.is_set():
         try:
             phrase = tts_queue.get(timeout=0.5)
@@ -349,8 +433,6 @@ using OpenAI’s GPT model. Each phrase is spoken using the TTS system.
 
 def nice_worker(stop_event, interval_seconds=300):
     """Fetch phrases every interval and queue them for TTS"""
-    client = OpenAI()
-
     def get_nice_phrase_from_api():
         try:
             resp = client.chat.completions.create(
