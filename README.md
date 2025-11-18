@@ -9,12 +9,14 @@ This is a Study Assistant designed to help users maintain focus during study ses
 ## Phases of the project
 
 1. **First working model**
+   
    The first working model included:
    - A camera feature trained using a Google Teachable Model to classify user focus
    - An Arduino-connected buzzer to redirect distracted users
    - A Python environment designed to support future modular expansion
 
-3. **Second model** 
+2. **Second model**
+   
     In this phase, we focused on implementing text-to-speech features. We experienced challenges with:
    - Model communication delays
    - Inconsistent audio playback
@@ -25,7 +27,8 @@ Our goals for the next demo include:
    - Beginning to work on the session timer
    - Question and Answer session to quiz the user using a PDF reader
 
-5. **Third model(Final model)**
+3. **Third model(Final model)**
+   
  In this final phase, we:
    - Optimized the code to make camera-model interactions smoother
    - Attempted to resolve issues with the model misidentifying certain group members
