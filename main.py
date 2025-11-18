@@ -30,8 +30,8 @@ start_delay = 15 # seconds to wait before starting the timer (to give user time 
 
 """
 This section tries to connect to the Arduino board through a serial port.
-It’s used later to send small signals (like "alert" or "light") to trigger LEDs or buzzers.
-If the Arduino isn’t connected, the program still runs without it.
+It'll be used to send the signals to turn on/off the lights and buzzer on the board
+If the Arduino isn’t connected, the program still runs without it. This was for testing and it doesn't really matter
 """
 
 # Adjust the port, if you need help finding this go to device manager on Windows or use `ls /dev/tty.*` on Mac/Linux
@@ -47,11 +47,11 @@ except Exception as e:
 
 """
 Loads the pre-trained TensorFlow (Keras) image model that detects user states.
-`keras_model.h5` and `labels.txt` are used for predictions — for example, recognizing
-if the user is focused or distracted. The system uses this data to trigger Arduino alerts.
+`keras_model.h5` and `labels.txt` are used for predictions, for example, recognizing
+if the user is focused or distracted. This data will trigger Arduino alerts.
 """
 
-# load the models
+# load the models, if you're using different models replace the folder/name below!
 try:
     model = load_model("mikeModels/keras_model.h5", compile=False)
     class_names = open("mikeModels/labels.txt", "r").readlines()
@@ -103,7 +103,7 @@ def run_timer(work_time, break_time, cycles):
 
     # start motivational worker thread
     stop_nice = threading.Event()
-    motivation_interval = 300  # 5 minutes between motivational phrases
+    motivation_interval = 300  # 5 minutes between motivational phrases.
     nice_thread = threading.Thread(target=nice_worker, args=(stop_nice, motivation_interval), daemon=True) # target is the function to run, args is a tuple of arguments to pass to the function, and daemon is True so it will exit when the main program exits
     nice_thread.start() # start the thread
 
