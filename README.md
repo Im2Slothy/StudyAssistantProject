@@ -1,19 +1,46 @@
 ## About the project
-This is a project about a Study Assistant that is designed to help users focus during study sessions using preset or custom study techniques. Mainly built in python, it features a timer, a camera to display the countdown and watch the user, and OpenAI's API to give motivational messages and turn those messages into auditory feedback. To let the user know the study session is over or when a milestone has been hit, it'll send a signal to an Arduino to flash an LED light lto communicate to the user and let them know whats happening as to limit distractions from personal devices including their computer. It can also feature a nice visual on the screen while the timer is going as to not distract the user. While the code is running it checks to see if the user is seen on their phone or distracted while in the active study session and it'll alert the user to get back to work. 
+This is a Study Assistant designed to help users maintain focus during study sessions using preset or custom study techniques. Built primarily in Python, it features: 
+- A session timer
+-  A camera for countdown display and focus monitoring
+-  Integration with OpenAI's API to generate motivational prompts and convert them into audio feedback.
+-  Arduino-based LED signaling for milestones, reducing reliance on distracting personal devices
+-  Distraction detection, alerting the user when they appear to be using their phone or looking away.
 
 ## Phases of the project
 
 1. **First working model**
-   The first working model includes a camera feature trained with a Google trainable model to register whether the user it looking at something distracting. It also includes a buzzer to redirect the user when distracted. We utilized Python to build the code and environment for this to work alongside an Arduino to carry out the messages be the physical model. The main part of this model was training the model and making sure it can run with the arduino setup that we currently have built. The python was constructed to be able to add more and achieve the second model's goals, which are more specific to the final model we had in mind. 
+   The first working model included:
+   - A camera feature trained using a Google Teachable Model to classify user focus
+   - An Arduino-connected buzzer to redirect distracted users
+   - A Python environment designed to support future modular expansion
 
-2. **Second model** 
-    In this model, we tried to figure out the text-to-speech section of the model. But we had some trouble getting it to communicate with the model, so we got the buzzer working pretty accurately. We tried multiple things to try and get the text to speech to work, but there were a lot of delays and flaws within what it was recognizing and when it would play the sound. Our main goal for the next demo is to get the text to speech working the way we want it to and maybe dedicating some time to trying to implement the timer, but it depends on how much time and trouble the text to speech gives us.
+3. **Second model** 
+    In this phase, we focused on implementing text-to-speech features. We experienced challenges with:
+   - Model communication delays
+   - Inconsistent audio playback
+Despite this, we achieved more accurate buzzer signaling
 
-3. **Third model(Final model)**
- For this model, we optimized the code to make the camera and the model interact more efficiently and smoother. Although this is not always shown on some of our laptops, we did this to make sure with an optimal environment it can run smoothly and without bugs. We were having some bugs with the camera and recognizing certain people in our group because of the training we used. It would recognize us half the time, and the other half, it would say we were distracted. We tried to fix this, but it didn't seem to work the exact way we wanted. Finally, we mainly worked on implementing a GPT model to ask questions based on the work you were supposed to be doing. We had to implement a PDF reader, and we got it working so that it prompts you at the beginning if you would like to import a PDF, which it will then ask you to drag and drop the file, and at the end of the study session (whatever you choose), you will be prompted with questions.
+Our goals for the next demo include: 
+   - Getting text-to-speech functioning reliably
+   - Beginning to work on the session timer
+   - Question and Answer session to quiz the user using a PDF reader
+
+5. **Third model(Final model)**
+ In this final phase, we:
+   - Optimized the code to make camera-model interactions smoother
+   - Attempted to resolve issues with the model misidentifying certain group members
+   - Implemented a GPT-based question generator to quiz users after their study session
+   - Added a PDF-import option, prompting the user at startup to upload a file used for generating questions later
 
 ## Overall ## 
-We are pretty proud of what we have done with this model! We accomplished a lot of what we set out to do with this model. With more time, we could definitely optimize some of the requirements within the code and the interaction with the camera. We also probably would wish to train it more with diverse amounts of people and get it to distinguish between the user and others walking by. But overall, the things we have implemented have been very rewarding for us, and it was very relieving that everything ran the way we planned! 
+We are very proudo of the progress made throughout this project. We successfully achieved most of our planned features and created a functioning integrated system. 
+
+With additional time we would: 
+- Optimize model accuracy and camera interaction
+- Train on a more diverse dataset to reduce misclassification
+- Improve user recognition vs nearby bystanders
+
+Overall, the system performed reliably and the results were rewarding!
 
 ## Requirements
 
