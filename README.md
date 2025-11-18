@@ -20,9 +20,9 @@ This is a Study Assistant designed to help users maintain focus during study ses
     In this phase, we focused on implementing text-to-speech features. We experienced challenges with:
    - Model communication delays
    - Inconsistent audio playback
-Despite this, we achieved more accurate buzzer signaling
+   Despite this, we achieved more accurate buzzer signaling
 
-Our goals for the next demo include: 
+   Our goals for the next demo include: 
    - Getting text-to-speech functioning reliably
    - Beginning to work on the session timer
    - Question and Answer session to quiz the user using a PDF reader
